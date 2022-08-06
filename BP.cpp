@@ -530,16 +530,20 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
 	      quan_s_update(checks,errors, mcv,mvc,syndrome,pv_dec, c, v,output_e,LR,alpha);
 	    }
 	    
-	  if(G*(output_e+real_e)==zero_rvec2)
-	    {
-	      num_iter= num_iter+l;
-	      return true;		
-	    }	 
-	  else
-	    {
-	      syn_fail++;
-	      return false;        
-	    }	    	  
+	   if (H*output_e==syndrome)
+		{		  
+		  if(G*(output_e+real_e)==zero_rvec2)
+		    {
+		      num_iter= num_iter+l;		  
+		      return true;
+		    }
+		  else
+		    {
+		      // cout<<"\n syndrome is ok, but decoding fails:"<<endl;
+		      syn_fail++;		
+		      return false;      	        
+		    }	    	  
+		}  
 	}
 	            
       if (debug%2==1)

@@ -99,3 +99,6 @@ int GF2mat_rank(const GF2mat& H_s);
 void dense_to_sparse(GF2mat &G,GF2mat& G_s);
 
 void err_pos1(const GF2mat &error);
+
+//get the generator matrix
+GF2mat get_gen(const GF2mat &H);
