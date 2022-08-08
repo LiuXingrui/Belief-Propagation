@@ -553,7 +553,7 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
 	  mvc.zeros();
 	  initialize_massages( mcv,mvc, H);
 	  vec pv2(v);
-	  pro_dist(pmin,pmax,pv2);
+	 
 	  GF2mat output_e2(v,1);
 	  GF2mat syndrome2=H*(real_e+output_e);
 	  //int wt_syn=s_weight(syndrome);
@@ -562,6 +562,7 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
 	  int l2=0;
 	  while (l2<5)
 	    {
+	      pro_dist(pmin,pmax,pv2);
 	      for (int l=1;l<=lmax;l++)
 		{	   
 		  if ((debug/2)%2==1)
