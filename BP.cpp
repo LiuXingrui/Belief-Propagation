@@ -555,15 +555,16 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
 	  pro_dist(pmin,pmax,pv2);
 	  GF2mat output_e2(v,1);
 	  GF2mat syndrome2=H*(real_e+output_e);
+	  vec LR2=LR;
 	  for (int l=1;l<=lmax;l++)
 	    {	   
 	      if ((debug/2)%2==1)
 		{
-		  quan_p_update(checks,errors, mcv,mvc,syndrome2,pv2, c, v,output_e2,LR,alpha);
+		  quan_p_update(checks,errors, mcv,mvc,syndrome2,pv2, c, v,output_e2,LR2,alpha);
 		}
 	      else
 		{
-		  quan_s_update(checks,errors, mcv,mvc,syndrome2,pv2, c, v,output_e2,LR,alpha);
+		  quan_s_update(checks,errors, mcv,mvc,syndrome2,pv2, c, v,output_e2,LR2,alpha);
 		}
 	      if (H*output_e2==syndrome2)
 		{		  
