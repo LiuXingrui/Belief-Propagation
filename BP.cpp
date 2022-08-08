@@ -547,7 +547,8 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
 	}
       	            
       if (debug%2==1)
-	{	  
+	{
+
 	  mcv.zeros();
 	  mvc.zeros();
 	  initialize_massages( mcv,mvc, H);
@@ -555,33 +556,45 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
 	  pro_dist(pmin,pmax,pv2);
 	  GF2mat output_e2(v,1);
 	  GF2mat syndrome2=H*(real_e+output_e);
+	  //int wt_syn=s_weight(syndrome);
+	  //int wt_new_syn=s_weight(syndrome2);
 	  vec LR2=LR;
-	  for (int l=1;l<=lmax;l++)
-	    {	   
-	      if ((debug/2)%2==1)
-		{
-		  quan_p_update(checks,errors, mcv,mvc,syndrome2,pv2, c, v,output_e2,LR2,alpha);
-		}
-	      else
-		{
-		  quan_s_update(checks,errors, mcv,mvc,syndrome2,pv2, c, v,output_e2,LR2,alpha);
-		}
-	      if (H*output_e2==syndrome2)
-		{		  
-		  if(G*(output_e+real_e+output_e2)==zero_rvec2)
+	  int l2=0;
+	  while (l2<5)
+	    {
+	      for (int l=1;l<=lmax;l++)
+		{	   
+		  if ((debug/2)%2==1)
 		    {
-		      num_iter= num_iter+l;		  
-		      return true;
+		      quan_p_update(checks,errors, mcv,mvc,syndrome2,pv2, c, v,output_e2,LR2,alpha);
 		    }
 		  else
 		    {
-		      // cout<<"\n syndrome is ok, but decoding fails:"<<endl;
-		      syn_fail++;		
+		      quan_s_update(checks,errors, mcv,mvc,syndrome2,pv2, c, v,output_e2,LR2,alpha);
+		    }
+		  if (H*output_e2==syndrome2)
+		    {		  
+		      if(G*(output_e+real_e+output_e2)==zero_rvec2)
+			{
+			  num_iter= num_iter+l;		  
+			  return true;
+			}
+		      else
+			{
+			  // cout<<"\n syndrome is ok, but decoding fails:"<<endl;
+			  syn_fail++;		
 		      return false;      	        
-		    }	    	  
-		}	    
+			}	    	  
+		    }
+		 
+		}
+	      l2++;
+	      output_e=output_e+output_e2;
+	      syndrome2=H*(real_e+output_e);
+	      //wt_syn=wt_new_syn;
+	      //wt_new_syn=s_weight(syndrome2);
 	    }
-	     output_e=output_e+output_e2;
+	  output_e=output_e+output_e2;
 	}
    
       if ((debug/8)%2==1)
