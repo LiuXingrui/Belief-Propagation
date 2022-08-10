@@ -1,9 +1,14 @@
+# Belief Propagation
+
 BP.cpp, BP.h contains the functions used in the programs. classical_main.cpp is for classical BP, quantum_main.cpp is for quantum BP. 
 To compile, type
-`make quan_BP`  
+```bash
+make quan_BP
+```  
 and 
-`make cla_BP`  
-
+```bash
+make cla_BP
+```  
 To run the programs:  
 Classical BP:    
   `./classical_BP  <H_file> <data_file> <p>   <number of codewords>  <max  iterations> <debug>`   
