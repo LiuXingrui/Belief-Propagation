@@ -44,7 +44,7 @@ void initialize_errors(const GF2mat &H, nodes errors[]){
 
     int r=H.rows();
     int c=H.cols();
-    int index=0;
+    //int index=0;
  
     for (int i=0; i<c;i++)
       {
@@ -55,7 +55,7 @@ void initialize_errors(const GF2mat &H, nodes errors[]){
 	  {
 	  errors[i].degree++;
 	  (errors[i].neighbors).ins(0,j);
-	  index++;	
+	  //index++;	
 	}	
       }
     }
@@ -77,34 +77,33 @@ void initialize_massages(mat &mcv,mat& mvc,const GF2mat &H){
     }  
 }
 
+
 //parallel schedule for classical BP
 void p_update(const nodes checks[],const nodes errors[],mat &mcv,mat& mvc,const GF2mat& syndrome,double p,int c, int v,  GF2mat& output_e){
-  double ipr=(1-p)/p;
-   
+  double ipr=(1-p)/p;//initial probability ratios.
+
+      //update all variables-to-checks massages:
   for (int i=0;i<c;i++)
     {
       int ci_degree=checks[i].degree;
       
-      	//update all v-to-ci massages first:
+      	//fix c_i,update all v-to-c_i massages first:
     for (int j=0;j<ci_degree;j++)
       {            
 	int vnode=(checks[i].neighbors)(j);
-        
-
 	update_vj_to_ci(checks, errors,mcv, mvc,vnode,i, ipr);	
       }
     }
-    //update all c-to-vj massages:
+  
+    //update all checks-to-variables massages:
   for (int j=0;j<v;j++)
     {
    int vj_degree=errors[j].degree;
    double  final_pr=ipr;
-
    for (int i=0;i<vj_degree;i++)
      {
        int cnode=(errors[j].neighbors)(i);
        update_ci_to_vj( checks, errors,mcv, mvc,cnode,j,syndrome(cnode,0));
-
        final_pr=final_pr*mcv(cnode,j);
       }   
        //  cout<<j<<"   "<<final_pr<<endl;
@@ -116,8 +115,8 @@ void p_update(const nodes checks[],const nodes errors[],mat &mcv,mat& mvc,const 
 //the sequential schedule 
 void s_update(const nodes checks[],const nodes errors[],mat &mcv,mat &mvc,const GF2mat& syndrome,double p,int c, int v,  GF2mat& output_e)
 {
-    double ipr=(1-p)/p; //initial p0/p1
-    double  final_pr;  //final p0/p1
+    double ipr=(1-p)/p; 
+    double  final_pr;  
     
     //fix j,  for every v_j, do the following:
     for (int j=0;j<v;j++)
@@ -165,8 +164,7 @@ inline void update_ci_to_vj(const nodes checks[],const nodes errors[],mat& mcv,m
        {
 	 //cout<<"inf"<<endl;
 	 mcv.set(i,j,1);
-       }
-     
+       }    
 }
 
 //update vj to ci massage:
@@ -185,20 +183,18 @@ inline void update_vj_to_ci(const nodes checks[],const nodes errors[],mat &mcv,m
       else
 	{
 	   mvc.set(i,j,mvc(i,j)*pow(mcv(ck,j),1.0-1.0/alpha));
-	}
-   
+	}   
      }   
 }
 
 //clasical decoding
-int  cla_decode(int v,int c,const GF2mat &H,const nodes checks[],const nodes errors[],double& num_iter, int lmax,int & er,vec& pv,int debug)
+int  cla_decode(int v,int c,const GF2mat &H,const nodes checks[],const nodes errors[],double& num_iter, int lmax,int & er,double p,int debug)
 {
   int n=v; 
   //if no error, break
-  double p=pv[0];
   int wt=0;
   GF2mat real_e(v,1);    
-  wt=error_channel(real_e, pv);
+  wt=cla_error_channel(real_e, p);
   //GF2mat zero_vec(v,1);
   if (wt==0)
     {
@@ -399,6 +395,25 @@ int error_channel(GF2mat &cw, const vec &p)
   return temp;
 }
 
+int cla_error_channel(GF2mat &cw, double p)
+  {
+  double temp2;
+  bin one=1;
+  int temp=0;
+  int r=cw.rows();
+ 
+    for (int i=0;i<r;i++)
+      {
+	temp2=randu();
+	if(temp2<p)
+	  {	 
+	    cw.set(i,0,cw(i,0)+one);
+	    temp++;
+	  }	
+      }
+    
+  return temp;
+}
 // error channel for fixed weight errors
 void error_channel2(GF2mat &error, int wt)
 { 
@@ -485,7 +500,6 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
 
   GF2mat zero_rvec(1,v);
    
-
   LR.zeros();
   //vec LR_avg=LR;
   GF2mat zero_mat1(c,1);
