@@ -15,13 +15,13 @@ To run the program:
 ```bash  
 ./classical_BP  <H_file> <data_file> <p>   <number of codewords>  <max  iterations> <debug>
 ```
-### explain the paremeters
+###  Paremeters
 H_file: the file stored the parity checks  
 data_file: the file to store the output data  
 p: bit error rate  
 debug:  debug=0 for parallel schedule, debug=1 for serial  schedule  
 
-### data file structure:  
+### Data-file structure
   The data stored in data_file are  
   column: parameter  
   0:n   
@@ -71,7 +71,7 @@ debug is for bitwise option.
    lambda won't work now, just set it=1 is ok.  
     
    
-   ### data structure
+   ### Data-file structure
    The data stored in data_file are  n d fail_rate pavg/wt range avg_iter_for_suc num_of_suc_dec num_of_cws syn_fail max_fail syn_fail_rate max_fail_rate:  
    column:parameter
    0:n  
@@ -92,7 +92,7 @@ debug is for bitwise option.
    15: number of OSD_suc  
    16:lambda  
    
-   ## parity check formats
+   ## Parity check format
 
 An example for the parity check matrix file:
   
@@ -114,7 +114,7 @@ Which is the matrix:
  0 1 1 1 0  
  0 0 1 1 1  
  
- The file stored parity check matrix use a similar format as MayKay's alist format, the only difference is there is no transposed matrix stored here. The first line is n n-k, then shows the position of 1 in corresponding rows.  
+ The file stored parity check matrix use a similar format as MayKay's alist format, the only difference is there is no transposed matrix stored here. The first line is n n-k, then shows the position of 1 in corresponding rows.(The first element is 1 rather than 0.)
  
 M1, M2, M3... are some matrices from MayKay's website.  
 Toric code example: toric_Hx_n10_cyc11 is Hx for d=10 toric code.  
