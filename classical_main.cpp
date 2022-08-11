@@ -19,15 +19,11 @@ using namespace std;
 #include <itpp/itbase.h>
 #include <itpp/itcomm.h>
 using namespace itpp;
-//compile: g++   `pkg-config --cflags itpp` -o my_prog BP.cpp  BP1.cpp `pkg-config --libs itpp`
-// format : ./my_prog H_file data_file  pmin pmax number_of_cordwords max_iteration debug
-//the format for the parity check file: the first row is n n-k,  then the sparse matrix. Notice
-// the first element stored in the file is 1 rathar than 0.
 
 int main(int argc, char **argv){
-  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now(); //to time
 
-  GlobalRNG_randomize ();
+  GlobalRNG_randomize (); 
   double p;
 
   int num_of_cws;
@@ -51,10 +47,7 @@ int main(int argc, char **argv){
     {
       cout<<"pm should be a double"<<endl;
       return 1;
-    }
-
-
-	   
+    }	   
 	     
   istringstream argv4( argv[4] );
   if ( argv4 >> num_of_cws){}
@@ -80,9 +73,9 @@ int main(int argc, char **argv){
     }
   if (debug==0) {cout<<"parallel schedule"<<endl;}
   else {cout<<"serial schedule"<<endl;}
+  
   double num_iter=0.0; //for calculate average iterations
   int num_of_suc_dec=0;// number of successfully decoded results
-
 
   //read the parity check matrix:
   int n;
@@ -106,7 +99,7 @@ int main(int argc, char **argv){
   
   for (int s=0;s<num_of_cws;s++)
     {     
-      num_of_suc_dec= num_of_suc_dec+cla_decode( v,c,H, checks, errors, num_iter,  lmax, er,p,debug);
+      num_of_suc_dec= num_of_suc_dec+cla_decode( v,c,H, checks, errors, num_iter, lmax, er,p,debug);//cla_decode=1 for suc, cla_decode=0 for failure.
     }
   
   cout<<"for p in ("<<p<<", "<<p<<"), there are total "<< num_of_suc_dec<<" successful decoding out of "<< num_of_cws<<" cws for a ["<<v<<", "<<k<<"] code"<<endl;

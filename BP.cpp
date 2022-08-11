@@ -191,11 +191,13 @@ inline void update_vj_to_ci(const nodes checks[],const nodes errors[],mat &mcv,m
 int  cla_decode(int v,int c,const GF2mat &H,const nodes checks[],const nodes errors[],double& num_iter, int lmax,int & er,double p,int debug)
 {
   int n=v; 
-  //if no error, break
+ 
   int wt=0;
   GF2mat real_e(v,1);    
-  wt=cla_error_channel(real_e, p);
+  wt=cla_error_channel(real_e, p);//the weight of the error
   //GF2mat zero_vec(v,1);
+  
+   //if no error, return suc
   if (wt==0)
     {
       return 1;
@@ -225,11 +227,11 @@ int  cla_decode(int v,int c,const GF2mat &H,const nodes checks[],const nodes err
 	  //  cout<<l<<endl;
 	  if (debug==0)
 	    {
-	      p_update(checks,errors, mcv,mvc,syndrome,p, c, v,output_e);
+	      p_update(checks,errors, mcv,mvc,syndrome,p, c, v,output_e);//parallel schedule
 	    }
 	  else
 	    {
-	      s_update(checks,errors, mcv,mvc,syndrome,p, c, v,output_e);
+	      s_update(checks,errors, mcv,mvc,syndrome,p, c, v,output_e);//parallel schedule
 	    }
 	  if (H*output_e==syndrome)
 	    {
@@ -253,9 +255,8 @@ int  cla_decode(int v,int c,const GF2mat &H,const nodes checks[],const nodes err
 	  if(l==lmax)
 	    {
 		er=er+ distance(output_e, real_e, n);
-		cout<<"real_e"<<endl;
-        
-	      return 0;	   	 
+		cout<<"real_e"<<endl;   
+		return 0;	   	 
 	    }
 	}
  }
@@ -288,15 +289,15 @@ GF2mat read_matrix (int& n,int &r, string & file_name)
   if(  iss>>n>>r) {}
   else
     {
-      cout<<"did not open the right parity check file"<<endl;
-      
+      cout<<"did not open the right parity check file"<<endl;   
     }
  
   GF2mat H(r,n);
   while( getline(parity_check, line))
     {
       istringstream iss2(line);
-      while (iss2>>temp){
+      while (iss2>>temp)
+	{
 	if (temp>=1&&temp<=n&&row_ind<r)
 	  {
 	    H.set(row_ind,temp-1,1);
@@ -306,7 +307,7 @@ GF2mat read_matrix (int& n,int &r, string & file_name)
 	  {
 	    cout<<"the format of the parity check is wrong, the first element is 1 rathar than 0"<<endl;	    
 	  }	
-      }
+	}
       row_ind++;
     }
   parity_check.close();
@@ -483,7 +484,7 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
   int wt_real_e=0;
   GF2mat real_e(v,1); 
 
-  if (wt==0)
+  if (wt==0)  
     {
       wt_real_e=error_channel(real_e, pv);
       if (wt_real_e==0)
@@ -562,7 +563,6 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
       	            
       if (debug%2==1)
 	{
-
 	  mcv.zeros();
 	  mvc.zeros();
 	  initialize_massages( mcv,mvc, H);
@@ -600,8 +600,7 @@ bool  quan_decode(GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[]
 			  syn_fail++;		
 		      return false;      	        
 			}	    	  
-		    }
-		 
+		    }		 
 		}
 	      l2++;
 	      output_e=output_e+output_e2;

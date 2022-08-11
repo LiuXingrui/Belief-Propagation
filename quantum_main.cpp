@@ -23,12 +23,12 @@ using namespace itpp;
 
 //GlobalRNG_reset (1);
 int main(int argc, char **argv){
-  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();//For timing.
   GlobalRNG_randomize ();
   double pmax;
   double pmin;
-  int num_of_cws=0;
-  int max_num_of_cws=2147483647;
+  long long int num_of_cws=0;
+  long long int max_num_of_cws=1e18;//when use number_of_decoding_failure, set max_num_of_cws=a very large number
   string file_name;
   string file_name2;
   string data_file;
@@ -83,7 +83,7 @@ int main(int argc, char **argv){
   if (max_failed_cws<0)
     {
       max_num_of_cws=-max_failed_cws;
-      max_failed_cws=1000000;
+      max_failed_cws=100000000;// when use max_num_of_cws, set max_failed_cws to a large number.
     }
  
 
@@ -164,7 +164,8 @@ int main(int argc, char **argv){
   //are the parity check matrices right?
   if (n1!=n2){cout<<"nx!=nz, the two matrices donot match"<<endl;return 1;}  
   n=n1;
-  
+
+  //if pavg>=1, it should be the weight
    if (pavg>=1)
     {
       wt=pavg;
@@ -196,16 +197,15 @@ int main(int argc, char **argv){
   int rankz=GF2mat_rank(Hz);
   k=n-rankx-rankz;
   GF2mat zero_mat1(r1,r2);
-
- 
   
-
+ 
   if((Hx*Hz.transpose())==zero_mat1) {}
   else{cout<<"Hx*Hz^T!=0, the two matrices donot match"<<endl;return 1;}
   //cout<<Hx*Hz.transpose()<<endl;
   
   GF2mat Gx=get_gen(Hx);
   //cout<<Gx*(Hx.transpose())<<endl;
+  
   GF2mat Gz=get_gen(Hz);
   // cout<<Gz*(Hz.transpose())<<endl;
   
@@ -214,7 +214,7 @@ int main(int argc, char **argv){
   nodes  zchecks[r2];//checks for Hz and X errors
   nodes  xerrors[n];
 
-  int E1=0;
+  int E1=0; //number of edges in Hx factor graph, but this parameter is not used in this prog
   int E2=0;
   //find the neighbourhoods of all nodes:
   initialize_checks (Hx, xchecks,  E1);
@@ -231,13 +231,18 @@ int main(int argc, char **argv){
   
          
   pro_dist( pmin,pmax, px);
-  pro_dist( decode_pmin,decode_pmax, px_dec);  
+  if (decode_pmin==pmin&&decode_pmax==pmax)
+    {
+      cout<<"a"<<endl;
+      px_dec=px;
+    }
+  else
+    {
+      pro_dist( decode_pmin,decode_pmax, px_dec);  
+    }
   
-  // int er=0;  //er is the number of one-bit errors (x for 1, z for 1, y for 2) that are wrong after decoding 
   while (  num_of_failed_cws<max_failed_cws&&num_of_cws<max_num_of_cws)
     {
-      //cout<<num_of_cws<<endl;
-      //cout<<max_num_of_cws<<endl;
       num_of_cws++;
       Hx_suc= quan_decode(Hx,Gz, xchecks,zerrors,px,px_dec,pmin,pmax,num_iter,lmax,wt,max_fail,syn_fail,debug,LR,rankx,OSD_suc,alpha,lambda);
  
@@ -251,9 +256,6 @@ int main(int argc, char **argv){
 	    num_of_failed_cws++;
 	}  
     }
-
-   
-
    
   if ((debug/2)%2==1)
     {
@@ -281,8 +283,6 @@ int main(int argc, char **argv){
 
   
    // cout<<"num of zero errors is about "<<pow(p,n)*num_of_cws<<endl;
- 
- 
       
    ofstream myfile;
    myfile.open (data_file,ios::app);
