@@ -83,23 +83,41 @@ void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, 
   if (w>1)
     {
       Add_cols(H,D,Ai,w,debug);// now H -> H*A^T^(-1), D-> DA
-      if (w==1){ K_trans(input_K,output_K,Ai,w,b);}
       if (w>2)
 	{
 	  Add_cols_and_rows(H,D,Ai,w,H2,D2,debug,b);  // now H-> \frac{H*A^T^(-1)}{F}, D-> DA | DAB
-	  K_trans(input_K,output_K,Ai,w,b);
 	}
+      K_trans(input_K,output_K,Ai,w,b);
 }
 
-  void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai, int w,vector<vector<int>>& b)
+  // b stores the binary form of 1,2...2^(w-1)-1
+void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai, int w,vector<vector<int>>& b)
 {
-  int temp=pow(2,w);
-  if (w==2){}
-  else{
-    for (int i=0;i<pow(2,w);i++)
-      {
-	
-      }
+  int num_change_cols=pow(2,w-1)-1;
+  int chang_col=0;
+  vector<double> B_tau;
+  construct_B_tau(B_tau,w,input_K,Ai);
+  
+  for (int i=1;i<=num_channge_cols;i++)
+    {
+      double temp=1;
+      vector<int> bi=b[i-1];
+      vector<int> bi_pos;
+      for (int k=0;k<bi.size()-1;k++)
+	{
+	  if (bi[k]==1){bi_pos.push_back(k);}
+	}
+      
+      for (int j=0;j<=num_change_cols;j++)
+	{
+	  
+	}
+    
+
+      
+      if (bi[bi.size()-1]==1){output_K[Ai[change_col]]=1/pow(2,w)*log(temp);chang_cols++;}  //change the value of corresponding K
+      else {output_K.push_back(1/(pow(2,w) *log(temp));
+    }
 
   
 }
@@ -176,7 +194,7 @@ void construct_BF(GF2mat& D,vector<int> &Ai, int w,int c, GF2mat& DB, GF2mat& F,
   
   //for B:
   // i starts with 1, because i=0 gives the all-zero col.
-  for (int i=1;i<num_change_cols;i++)
+  for (int i=1;i<=num_change_cols;i++)
     {
       int wt=0;
       co.zeros();
