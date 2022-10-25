@@ -94,23 +94,50 @@ void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, 
 void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai, int w,vector<vector<int>>& b)
 {
   int num_change_cols=pow(2,w-1)-1;
+  int num_B_tau=pow(2,w);
   int chang_col=0;
   vector<double> B_tau;
   construct_B_tau(B_tau,w,input_K,Ai);
-  
+  vector<vector<int>>  Tau;
+ 
+  // get the binray form of tau
+   for (int i=0;i<num_B_taus;i++)
+   { 
+      vector<int> tau;  
+      for (int j=0;j<w;j++)
+	{
+	  //temp is jth digit of i
+	 int temp=i%pow(2,j);
+	  // if jth digit is one, set corresponding entries in co and ro to be one
+	  if (temp==1){tau.push_back(1);}
+	  else {tau.push_back(0);};
+	}
+	Tau.push_back(tau);   
+   }   
+	   
   for (int i=1;i<=num_channge_cols;i++)
     {
       double temp=1;
       vector<int> bi=b[i-1];
-      vector<int> bi_pos;
+      int wt_bi=bi[bi.size()-1];
+      vector<int> bi_to_tau_pos;
+	  
+      //because the vector bi has weight w-1, but the vector tau has weight w, every even weight tau gives a bi, 
+     // when convert bi back to tau,if bi has even weight, the first digit of tau=0, if bi has odd weight, the first digit of tau=1.
+      if (wt_bi%2==0){}
+      else {bi_to_tau_pos.push_back(0);}
       for (int k=0;k<bi.size()-1;k++)
 	{
-	  if (bi[k]==1){bi_pos.push_back(k);}
+	  if (bi[k]==1){bi_pos.push_back(k+1);} 
 	}
       
-      for (int j=0;j<=num_change_cols;j++)
+      for (int j=0;j<num_B_tau;j++)
 	{
-	  
+	  int wt_tau_bi=0;
+	  for (int ii=0;ii<bi_to_tau_pos.size();ii++)
+	    {
+	       if (
+	    }
 	}
     
 
