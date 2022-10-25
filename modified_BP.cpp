@@ -97,11 +97,11 @@ void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai,
   int num_B_tau=pow(2,w);
   int chang_col=0;
   vector<double> B_tau;
-  construct_B_tau(B_tau,w,input_K,Ai);
+ 
   vector<vector<int>>  Tau;
  
   // get the binray form of tau
-   for (int i=0;i<num_B_taus;i++)
+   for (int i=0;i<num_B_tau;i++)
    { 
       vector<int> tau;  
       for (int j=0;j<w;j++)
@@ -114,7 +114,8 @@ void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai,
 	}
 	Tau.push_back(tau);   
    }   
-	   
+  construct_B_tau(B_tau,w,input_K,Ai,Tau);   
+	
   for (int i=1;i<=num_channge_cols;i++)
     {
       double temp=1;
@@ -136,19 +137,19 @@ void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai,
 	  int wt_tau_bi=0;
 	  for (int ii=0;ii<bi_to_tau_pos.size();ii++)
 	    {
-	       if (
+	       if (Tau[j][bi_to_tau_pos[ii]]==1){wt_tau_bi++;}
 	    }
-	}
-    
-
-      
+	      if (wt_tau_bi%2==0){temp=temp*B_tau[j];}
+	      else{temp=temp/B_tau[j];}
+	}      
       if (bi[bi.size()-1]==1){output_K[Ai[change_col]]=1/pow(2,w)*log(temp);chang_cols++;}  //change the value of corresponding K
-      else {output_K.push_back(1/(pow(2,w) *log(temp));
-    }
-
-  
+      else {output_K.push_back(1/(pow(2,w)*log(temp));
+    }  
 }
-
+ void construct_B_tau(vector<int> &B_tau,int w, vector<double>& input_K, vector<int> Ai,vector<vector<int>>&  Tau){
+	 int num_B_tau=pow(2,w);
+	 
+ }
 void Add_cols(GF2mat& H,GF2mat& D,vector<int>& Ai,const int w,int debug){
 
   int k=D.rows();
@@ -228,7 +229,7 @@ void construct_BF(GF2mat& D,vector<int> &Ai, int w,int c, GF2mat& DB, GF2mat& F,
       ro.zeros();
       vector<int> bi;  //bi is the binary form of i
       //calculate bi, and where are the corresponding 1-entries of co
-      for (j=1;j<=w-1;j++)
+      for (int j=1;j<=w-1;j++)
 	{
 	  //temp is jth digit of i
 	  temp=i%pow(2,j-1);
