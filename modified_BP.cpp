@@ -25,14 +25,18 @@ using namespace std;
 using namespace itpp;
 
 //Perform the matrix reduction for H and D, for stabilizer codes, if H=Hx, D=Hz, I call it D because it represents the degeneracy
-void Mat_Trans(GF2mat& H, GF2mat& D, GF2mat& H_tilde, GF2mat& D_tilde, vector<vector<int>>& A, int num_of_row_reduction,int debug){
+void Mat_Trans(GF2mat& H, GF2mat& D, vector<double> &K, vector<double>& K_tilde, GF2mat& H_tilde, GF2mat& D_tilde, vector<vector<int>>& A, int num_of_row_reduction,int debug){
 
   GF2mat input_H=H;
   GF2mat input_D=D;
   GF2mat output_H, output_D;
+  vector<double> input_K=K;
+  vector<double> output_K;
   for (int i=0;i<num_of_row_reduction;i++)
     {
-      row_reduction(i,input_H, input_D, output_H,output_D,A);
+      //perform row reduction for 0th column of D
+      row_reduction(0,input_H, input_D, output_H,output_D,input_K,output_K,A);//I havn't delete the rows and columns
+ 
       //  check if the prog is right:
       if (debug==1)
 	{
@@ -40,18 +44,31 @@ void Mat_Trans(GF2mat& H, GF2mat& D, GF2mat& H_tilde, GF2mat& D_tilde, vector<ve
 	  if((output_H*output_D.transpose())==zero_mat1) {}
 	  else{cout<<"(output_H*output_D^T!=0 for the row "<<i<<endl;return;}
 	}
+      //delete 0th col and row of D, delete 0th col of H
+      output_H=output_H.get_submatrix(0,1,output_H.rows()-1,output_H.cols()-1);
+      output_D=output_D.get_submatrix(1,1,output_D.rows()-1,output_D.cols()-1);
+      
+      if (debug==1)
+	{
+	  GF2mat zero_mat1(output_H.rows(),output_D.rows());
+	  if((output_H*output_D.transpose())==zero_mat1) {}
+	  else{cout<<"(after deleting rows and cols: output_H*output_D^T!=0 for the row "<<i<<endl;return;}
+	}
+
       
       input_H=output_H;
       input_D=output_D;
+      input_K=output_K;
     }
   H_tilde=output_H;
   D_tilde=output_D;
+  K_tilde=output_K;
 }
 
 
-void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, vector<vector<int>>& A, int debug){
+void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, vector<double> &input_K,vecter<double>&output_K,vector<vector<int>>& A, int debug){
   vector<int> Ai;
-  vector<int> Bi;
+  vector<vector<int>> b;
   int n=D.cols();
   int k=D.rows();
   int w=0;
@@ -66,18 +83,33 @@ void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, 
   if (w>1)
     {
       Add_cols(H,D,Ai,w,debug);// now H -> H*A^T^(-1), D-> DA
+      if (w==1){ K_trans(input_K,output_K,Ai,w,b);}
       if (w>2)
 	{
-	  Add_cols_and_rows(H,D,Ai,w,H2,D2,debug);  // now H-> \frac{H*A^T^(-1)}{F}, D-> DA | DAB
+	  Add_cols_and_rows(H,D,Ai,w,H2,D2,debug,b);  // now H-> \frac{H*A^T^(-1)}{F}, D-> DA | DAB
+	  K_trans(input_K,output_K,Ai,w,b);
 	}
 }
 
-void Add_cols (GF2mat& H,GF2mat& D,vector<int>& Ai,const int w,int debug){
+  void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai, int w,vector<vector<int>>& b)
+{
+  int temp=pow(2,w);
+  if (w==2){}
+  else{
+    for (int i=0;i<pow(2,w);i++)
+      {
+	
+      }
+
+  
+}
+
+void Add_cols(GF2mat& H,GF2mat& D,vector<int>& Ai,const int w,int debug){
 
   int k=D.rows();
   int r=H.rows();
 
-  for (int i=1;i<w;i++)
+  for (int i=1;i<w;i++)  // choose 1st, 2nd to w-1 cols, and 0th column to them,
     {
       for (int j=0;j<k;j++)
 	{
@@ -99,15 +131,22 @@ void Add_cols (GF2mat& H,GF2mat& D,vector<int>& Ai,const int w,int debug){
 }
 
 
-void Add_cols_and_rows(GF2mat& H,GF2mat& D,vector<int>& Ai,int w,GF2mat& H2,GF2mat& D2,int debug){
+void Add_cols_and_rows(GF2mat& H,GF2mat& D,vector<int>& Ai,int w,GF2mat& H2,GF2mat& D2,int debug,vector<vector<int>>& b){
 
-  int num_of_added_cols=pow(2,w)-w-1;
-  int r=D.cols();
-  GF2mat B,F;
-  construct_BF(Ai,w,c,B,F);
-  GF2mat D2_right=D*B;
-  D2=merge_mat_hori(D,B);
-  H2=merge_mat_vert(H,F);
+  int num_add_cols=pow(2,w-1)-w; //number of added cols, also is the num of cols of B,cols of B are binray form of 0,1,...2^(w-1)-1,
+                                  //but delete w-1 weight=1 cols, and 1 weight=0 col, so num_add_col=2^(w-1)-(w-1)-1=2^(w-1)-w
+  int c=D.cols();
+  int r=D.rows();
+  GF2mat  DB(c,num_add_cols);
+  GF2mat  F(num_add_cols,H.cols()+num_add_cols);
+  
+  construct_BF(D,Ai,w,c,DB,F,b);
+  
+  GF2mat zero_mat(H.rows();num_add_cols);
+  GF2mat H1=merge_mat_hori(H,zero_mat);
+  
+  D2=merge_mat_hori(D,DB);
+  H2=merge_mat_vert(H1,F);
 
   if (debug==1)
     {
@@ -118,21 +157,74 @@ void Add_cols_and_rows(GF2mat& H,GF2mat& D,vector<int>& Ai,int w,GF2mat& H2,GF2m
       
 }
 
-GF2mat construct_BF(vector<int> Ai, int w,int c,GF2mat&B,GF2mat& F){
-  GF2mat B(c,pow(2,w-1)-w);
+// b stores the binary form of 0...2^(w-1)-1, and the last element is w
+void construct_BF(GF2mat& D,vector<int> &Ai, int w,int c, GF2mat& DB, GF2mat& F,vector<vector<int>>& b){
 
-  for (i=2;i<=w;i++)
-    {
-      for (j
+  int added_c=0;
+  int r=D.rows();
+  int num_add_cols=pow(2,w-1)-w;
+  int num_change_cols=pow(2,w-1)-1; // number of changed cols,which equals to num_add_cols_+w-1
+  GF2mat B(c,num_add_cols);
+  bvec co(c); // the column added to the right of D
+  bvec ro(F.cols());//the row added to the bottom of H
+  ro.zeros();
+  co.zeros();
+  int col_ind=0;  // a column index
+  int temp=0;
 
   
+  
+  //for B:
+  // i starts with 1, because i=0 gives the all-zero col.
+  for (int i=1;i<num_change_cols;i++)
+    {
+      int wt=0;
+      co.zeros();
+      ro.zeros();
+      vector<int> bi;  //bi is the binary form of i
+      //calculate bi, and where are the corresponding 1-entries of co
+      for (j=1;j<=w-1;j++)
+	{
+	  //temp is jth digit of i
+	  temp=i%pow(2,j-1);
+	  // if jth digit is one, set corresponding entries in co and ro to be one
+	  if (temp==1){ co(Ai[j-1])=1;ro(Ai[j-1])=1;bi.push_back(1);wt++;}
+	  else {bi.push_back(0);};
+	}
 
+      //if wt=1, we don't need to add this col
+      if (wt>1)
+	{
+	  B.set_col(col_ind,co);
+	  col_ind++;
+	}
+      
+      if (wt==2){F.set_row(col_ind,ro);}
 
+      // if wt>2, we can set F(i,i)=F(i,i-1)=1 first and to find  which entry should equals to 1 that keeps the orthogonality.
+      if (wt>2)
+	{
+	  F.set(col_ind,col_ind-1,1);
+	  bvec temp_vec1=B.get_col(col_ind);
+	  bvec temp_vec2=B.get_col(col_ind-1);
+	  
+	  // substract the corrsponding columns of B to find where is the third col.
+	  bvec temp_vec21=temp_vec1+temp_vec2;
+	  for (int k=0;k<col_ind-1;k++)
+	    {
+	      if (temp_vec21==B.get_col(k)){F.set(col_ind,k,1);break;}
+	      if (k==col_ind-2){cout<<"k==col_ind-2, something went wrong"<<endl;return;}
+	    }
+	}
+          
+      F.set(col_ind,col_ind,1);
+      bi.push_back(w);// store the weight in the last position of bi
+      b.push_back(bi);
+    }
 }
 
 
-
-
+  
 
 GF2mat merge_mat_vert(const GF2mat &up,const GF2mat &bottom, int debug)
 {
