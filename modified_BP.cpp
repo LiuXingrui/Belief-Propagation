@@ -6,6 +6,7 @@
 #include <math.h> 
 #include <random>
 #include <sstream>
+#include <bits/stdc++.h>
 
 #ifndef BP
 #define BP
