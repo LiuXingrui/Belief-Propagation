@@ -32,7 +32,7 @@ void Mat_Trans(GF2mat& H, GF2mat& D, vector<double> &K, vector<double>& K_tilde,
   GF2mat input_D=D;
   GF2mat output_H, output_D;
   vector<double> input_K=K;
-  vector<double> output_K;
+  vector<double> output_K=K;
   for (int i=0;i<num_of_row_reduction;i++)
     {
       //perform row reduction for 0th column of D
@@ -42,6 +42,7 @@ void Mat_Trans(GF2mat& H, GF2mat& D, vector<double> &K, vector<double>& K_tilde,
       if (debug==1)
 	{
 	  GF2mat zero_mat1(output_H.rows(),output_D.rows());
+	  cout<<"after "<<i<<"th row reduction before deleting rows/cols H:\n"<<output_H<<" \n D: \n"<<output_D<<endl;
 	  if((output_H*output_D.transpose())==zero_mat1) {}
 	  else{cout<<"(output_H*output_D^T!=0 for the row "<<i<<endl;return;}
 	}
@@ -51,6 +52,7 @@ void Mat_Trans(GF2mat& H, GF2mat& D, vector<double> &K, vector<double>& K_tilde,
       
       if (debug==1)
 	{
+	
 	  GF2mat zero_mat1(output_H.rows(),output_D.rows());
 	  if((output_H*output_D.transpose())==zero_mat1) {}
 	  else{cout<<"(after deleting rows and cols: output_H*output_D^T!=0 for the row "<<i<<endl;return;}
@@ -67,7 +69,7 @@ void Mat_Trans(GF2mat& H, GF2mat& D, vector<double> &K, vector<double>& K_tilde,
 }
 
 
-void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, vector<double> &input_K,vecter<double>&output_K,vector<vector<int>>& A, int debug){
+void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, vector<double> &input_K,vector<double>&output_K,vector<vector<int>>& A, int debug){
   vector<int> Ai;
   vector<vector<int>> b;
   int n=D.cols();
@@ -89,14 +91,13 @@ void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, 
 	  Add_cols_and_rows(H,D,Ai,w,H2,D2,debug,b);  // now H-> \frac{H*A^T^(-1)}{F}, D-> DA | DAB
 	}
       K_trans(input_K,output_K,Ai,w,b);
+    }
 }
-
   // b stores the binary form of 1,2...2^(w-1)-1
-void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai, int w,vector<vector<int>>& b)
-{
+void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai, int w,vector<vector<int>>& b){
   int num_change_cols=pow(2,w-1)-1;
   int num_B_tau=pow(2,w);
-  int chang_col=0;
+  int change_col=0;
   vector<double> B_tau;
  
   vector<vector<int>>  Tau;
@@ -107,8 +108,9 @@ void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai,
       vector<int> tau;  
       for (int j=0;j<w;j++)
 	{
+	  int twotoj=pow(2,j)+0.5;
 	  //temp is jth digit of i
-	 int temp=i%pow(2,j);
+	 int temp=i%twotoj;
 	  // if jth digit is one, set corresponding entries in co and ro to be one
 	  if (temp==1){tau.push_back(1);}
 	  else {tau.push_back(0);};
@@ -117,20 +119,21 @@ void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai,
    }   
   construct_B_tau(B_tau,w,input_K,Ai,Tau);   
 	
-  for (int i=1;i<=num_channge_cols;i++)
+  for (int i=1;i<=num_change_cols;i++) // every changed col gives a changed K
     {
       double temp=1;
-      vector<int> bi=b[i-1];
+      vector<int> bi=b[i-1]; // bi is the subscript of the current K
       int wt_bi=bi[bi.size()-1];
       vector<int> bi_to_tau_pos;
 	  
       //because the vector bi has weight w-1, but the vector tau has weight w, every even weight tau gives a bi, 
-     // when convert bi back to tau,if bi has even weight, the first digit of tau=0, if bi has odd weight, the first digit of tau=1.
+     // when convert bi back to tau,just a a digit at the end of bi, if bi has even weight, the first digit of tau=0, if bi has odd weight, the first digit of tau=1.
       if (wt_bi%2==0){}
-      else {bi_to_tau_pos.push_back(0);}
+      else {bi_to_tau_pos.push_back(0);}  // if bi has odd weight, the first digit of tau is 1.
+      
       for (int k=0;k<bi.size()-1;k++)
 	{
-	  if (bi[k]==1){bi_pos.push_back(k+1);} 
+	  if (bi[k]==1){bi_to_tau_pos.push_back(k+1);}  //find the entries of tau with 1
 	}
       
       for (int j=0;j<num_B_tau;j++)
@@ -138,19 +141,30 @@ void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai,
 	  int wt_tau_bi=0;
 	  for (int ii=0;ii<bi_to_tau_pos.size();ii++)
 	    {
-	       if (Tau[j][bi_to_tau_pos[ii]]==1){wt_tau_bi++;}
+	      if (Tau[j][bi_to_tau_pos[ii]]==1){wt_tau_bi++;}//Tau[j] is the binary form of j, check the number of i such that Tau[j][i]=tau[i]=1
 	    }
 	      if (wt_tau_bi%2==0){temp=temp*B_tau[j];}
 	      else{temp=temp/B_tau[j];}
 	}      
-      if (bi[bi.size()-1]==1){output_K[Ai[change_col]]=1/pow(2,w)*log(temp);chang_cols++;}  //change the value of corresponding K
-      else {output_K.push_back(1/(pow(2,w)*log(temp));
+      if (bi[bi.size()-1]==1){output_K[Ai[change_col]]=1/pow(2,w)*log(temp);change_col++;}  //change the value of corresponding K
+      else {output_K.push_back(1/pow(2,w)*log(temp));}
     }  
 }
- void construct_B_tau(vector<int> &B_tau,int w, vector<double>& input_K, vector<int> Ai,vector<vector<int>>&  Tau){
-	 int num_B_tau=pow(2,w);
-	 
+      
+void construct_B_tau(vector<double> &B_tau,int w, vector<double>& input_K, vector<int> Ai,vector<vector<int>>&  Tau){
+   int num_B_tau=pow(2,w);
+   int temp=0;
+   for (int i=0;i<num_B_tau;i++)
+     {
+       temp=0;
+       for (int j=0;j<w;j++)
+	 {
+	   temp=temp+input_K[Ai[j]]*pow(-1,Tau[i][j]);
+	 }     
+       B_tau.push_back(temp);
+     }	 	 
  }
+ 
 void Add_cols(GF2mat& H,GF2mat& D,vector<int>& Ai,const int w,int debug){
 
   int k=D.rows();
@@ -189,7 +203,7 @@ void Add_cols_and_rows(GF2mat& H,GF2mat& D,vector<int>& Ai,int w,GF2mat& H2,GF2m
   
   construct_BF(D,Ai,w,c,DB,F,b);
   
-  GF2mat zero_mat(H.rows();num_add_cols);
+  GF2mat zero_mat(H.rows(),num_add_cols);
   GF2mat H1=merge_mat_hori(H,zero_mat);
   
   D2=merge_mat_hori(D,DB);
@@ -233,7 +247,8 @@ void construct_BF(GF2mat& D,vector<int> &Ai, int w,int c, GF2mat& DB, GF2mat& F,
       for (int j=1;j<=w-1;j++)
 	{
 	  //temp is jth digit of i
-	  temp=i%pow(2,j-1);
+	  int twotoj=pow(2,j-1)+0.5;
+	  temp=i%twotoj;
 	  // if jth digit is one, set corresponding entries in co and ro to be one
 	  if (temp==1){ co(Ai[j-1])=1;ro(Ai[j-1])=1;bi.push_back(1);wt++;}
 	  else {bi.push_back(0);};
@@ -292,15 +307,16 @@ GF2mat merge_mat_vert(const GF2mat &up,const GF2mat &bottom, int debug)
 
       for (int i=0;i<c;i++)
 	{
-	  for (int j1=0;j1<r1;j1++){
-	    m.set(j1,i,up(j1,i));
-	  }
-	  for (int j2=0;j2<r2;j2++){
-	    m.set(j2+r1,i,bottom(j2,i);
-	  }	  
+	  for (int j1=0;j1<r1;j1++)
+	    {
+	      m.set(j1,i,up(j1,i));
+	    }
+	  for (int j2=0;j2<r2;j2++)
+	    {
+	      m.set(j2+r1,i,bottom(j2,i));
+	    }	  
 	}
-	  if (debug==1){cout<<"up:\n"<<up<<"\n  bottom:\n"<<bottom<<"\n result: \n"<<m<<endl;
-       return m;
+      if (debug==1){cout<<"up:\n"<<up<<"\n  bottom:\n"<<bottom<<"\n result: \n"<<m<<endl;}
+      return m;
     }
 }
-
