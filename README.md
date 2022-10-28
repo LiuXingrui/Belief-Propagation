@@ -121,5 +121,5 @@ Toric code example: toric_Hx_n10_cyc11 is Hx for d=10 toric code.
 
 ## MBP
 ```bash
-./MBP  Hx_file Hz_file p  max_failed_cws/max_num_of_cws lmax data_file options channel num_of_row_reduction"
+./MBP  Hx_file Hz_file p  max_failed_cws/max_num_of_cws lmax data_file options channel num_of_row_reduction debug"
 ```
