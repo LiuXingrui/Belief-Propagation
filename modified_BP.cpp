@@ -26,17 +26,33 @@ using namespace std;
 using namespace itpp;
 
 //Perform the matrix reduction for H and D, for stabilizer codes, if H=Hx, D=Hz, I call it D because it represents the degeneracy
-void Mat_Trans(GF2mat& H, GF2mat& D, vector<double> &K, vector<double>& K_tilde, GF2mat& H_tilde, GF2mat& D_tilde, vector<vector<int>>& A, int num_of_row_reduction,int debug){
+void Mat_Trans(const GF2mat& H, const GF2mat& D, vector<double> &K, vector<double>& K_tilde, GF2mat& H_tilde, GF2mat& D_tilde, vector<vector<int>>& A, int num_of_row_reduction,int debug){
 
   GF2mat input_H=H;
   GF2mat input_D=D;
   GF2mat output_H, output_D;
   vector<double> input_K=K;
   vector<double> output_K=K;
+ 
   for (int i=0;i<num_of_row_reduction;i++)
     {
-      //perform row reduction for 0th column of D
-      row_reduction(0,input_H, input_D, output_H,output_D,input_K,output_K,A,debug);//I havn't delete the rows and columns
+      int min_wt=H.cols();
+      int this_row=0;
+      
+      for (int j=0;j<input_D.rows();j++)
+	{
+	  
+	  bvec temp_vec=input_D.get_row(j);
+	  int temp_wt=Weight(temp_vec);
+	  if (temp_wt<min_wt){min_wt=temp_wt;this_row=j;}
+	  
+	}
+      if (debug==1)
+	{
+	  cout<<i+1<<"th row reduction, delete "<<this_row<<"th row:"<<endl;
+	}
+      //perform row reduction for the column with minimum weight of D
+      row_reduction(this_row,input_H, input_D, output_H,output_D,input_K,output_K,A,debug);//I havn't delete the rows and columns
  
       //  check if the prog is right:
       if (debug==1)
@@ -46,17 +62,63 @@ void Mat_Trans(GF2mat& H, GF2mat& D, vector<double> &K, vector<double>& K_tilde,
 	  if((output_H*output_D.transpose())==zero_mat1) {}
 	  else{cout<<"before deleting: output_H*output_D^T!=0 for the row "<<i<<endl;}
 	}
-      //delete 0th col and row of D, delete 0th col of H
-      output_H=output_H.get_submatrix(0,1,output_H.rows()-1,output_H.cols()-1);
-      output_D=output_D.get_submatrix(1,1,output_D.rows()-1,output_D.cols()-1);
+
+      if (A[i][0]==0) //if delete the 0th column from H and D
+	{
+	  output_H=output_H.get_submatrix(0,1,output_H.rows()-1,output_H.cols()-1);
+	  if (i!=D.rows()-1) { output_D=output_D.get_submatrix(0,1,output_D.rows()-1,output_D.cols()-1);	}
+	}
+      else if(A[i][0]==output_H.cols()-1)//if delete the last column
+	{
+	  output_H=output_H.get_submatrix(0,0,output_H.rows()-1,output_H.cols()-2);
+	  if (i!=D.rows()-1) { output_D=output_D.get_submatrix(0,0,output_D.rows()-1,output_D.cols()-2);}
+	}     
+      else //delete A[i][0]th column from H and D
+	{
+	  GF2mat H1=output_H.get_submatrix(0,0,output_H.rows()-1,A[i][0]-1);
+	  GF2mat H2=output_H.get_submatrix(0,A[i][0]+1,output_H.rows()-1,output_H.cols()-1);
+	  output_H=merge_mat_hori(H1,H2);
+	  if (i!=D.rows()-1)
+	    {
+	      GF2mat D1=output_D.get_submatrix(0,0,output_D.rows()-1,A[i][0]-1);
+	      GF2mat D2=output_D.get_submatrix(0,A[i][0]+1,output_D.rows()-1,output_D.cols()-1);
+	      output_D=merge_mat_hori(D1,D2);
+	    }	  
+	}
+      if (i!=D.rows()-1)
+	{
+	  if (this_row==0) //if delete 0th row from D
+	    {
+	      output_D=output_D.get_submatrix(1,0,output_D.rows()-1,output_D.cols()-1);
+	    }
+	  else if(this_row==output_D.rows()-1)
+	    {
+	      output_D=output_D.get_submatrix(0,0,output_D.rows()-2,output_D.cols()-1);
+	    }
+	  else 
+	    {
+	      GF2mat D3=output_D.get_submatrix(0,0,this_row-1,output_D.cols()-1);
+	      // cout<<D3.cols()<<endl;
+	      GF2mat D4=output_D.get_submatrix(this_row+1,0,output_D.rows()-1,output_D.cols()-1);
+	      // cout<<D4.cols()<<endl;
+	      output_D=merge_mat_vert(D3,D4);
+	    }
+     
+	}
+      output_K.erase(output_K.begin()+this_row);
+
+      //need delete an element from K
       
       if (debug==1)
 	{
 	
 	  GF2mat zero_mat1(output_H.rows(),output_D.rows());
-	  cout<<"after "<<i<<"th row reduction after deleting rows/cols \n H:\n"<<output_H<<" \n D: \n"<<output_D<<endl;
-	  if((output_H*output_D.transpose())==zero_mat1) {}
-	  else{cout<<"after deleting rows and cols: output_H*output_D^T!=0 for the row "<<i<<endl;return;}
+	  cout<<"after deleting "<<i+1<<" rows (delete row: "<<this_row<<" and column: "<<A[i][0]<<" )\n H:\n"<<output_H<<" \n D: \n"<<output_D<<endl;
+	  if (i!=D.rows()-1)
+	    {
+	      if((output_H*output_D.transpose())==zero_mat1) {}
+	      else{cout<<"after deleting rows and cols: output_H*output_D^T!=0 for the row the result is"<<output_H*output_D.transpose()<<endl;return;}
+	    }
 	}
 
       
@@ -64,13 +126,15 @@ void Mat_Trans(GF2mat& H, GF2mat& D, vector<double> &K, vector<double>& K_tilde,
       input_D=output_D;
       input_K=output_K;
     }
+
   H_tilde=output_H;
   D_tilde=output_D;
   K_tilde=output_K;
+
 }
 
 
-void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, vector<double> &input_K,vector<double>&output_K,vector<vector<int>>& A, int debug){
+void row_reduction(const int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, vector<double> &input_K,vector<double>&output_K,vector<vector<int>>& A, int debug){
   vector<int> Ai;
   vector<vector<int>> b;
   int n=D.cols();
@@ -87,70 +151,88 @@ void row_reduction(int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat& D2, 
   if (w>1)
     {
       Add_cols(H,D,Ai,w,debug);// now H -> H*A^T^(-1), D-> DA
+      
       if (w>2)
 	{
+	  // cout<<"before add cols and rows"<<endl;
 	  Add_cols_and_rows(H,D,Ai,w,H2,D2,debug,b);  // now H-> \frac{H*A^T^(-1)}{F}, D-> DA | DAB
+	  // cout<<"after add cols and rows"<<endl;
 	}
+      else{H2=H;D2=D;}
       K_trans(input_K,output_K,Ai,w,b);
+      // cout<<"after K_trans"<<endl;
     }
 }
 
   // b stores the binary form of 1,2...2^(w-1)-1
 void K_trans(vector<double>& input_K, vector<double> &output_K, vector<int>& Ai, int w,vector<vector<int>>& b){
-  int num_change_cols=pow(2,w-1)-1;
+  int num_change_cols=pow(2,w-1)-1;// w=2: 1; w=3: 3; w=4:7
   int num_B_tau=pow(2,w);
   int change_col=0;
   vector<double> B_tau;
  
   vector<vector<int>>  Tau;
- 
-  // get the binray form of tau
-   for (int i=0;i<num_B_tau;i++)
-   { 
+
+  int temp_K_changed=0;
+  
+  // get the binray form of i, store in the vector called "tau",notice the ith element in "tau" is the ith digit of i, so if i=1010, tau=[0,1,0,1]
+  for (int i=0;i<num_B_tau;i++)
+    {
+      int tempi=i;
       vector<int> tau;  
       for (int j=0;j<w;j++)
 	{
-	  int twotoj=pow(2,j)+0.5;
-	  //temp is jth digit of i
-	 int temp=i%twotoj;
+	  int tempi_red=tempi%2;
+	  tempi=tempi/2;
+	  
 	  // if jth digit is one, set corresponding entries in co and ro to be one
-	  if (temp==1){tau.push_back(1);}
+	  if (tempi_red==1){tau.push_back(1);}
 	  else {tau.push_back(0);};
 	}
-	Tau.push_back(tau);   
-   }   
-  construct_B_tau(B_tau,w,input_K,Ai,Tau);   
-	
+      Tau.push_back(tau);   
+    }
+  //now construct all B_tau
+  construct_B_tau(B_tau,w,input_K,Ai,Tau);
+  
+  
   for (int i=1;i<=num_change_cols;i++) // every changed col gives a changed K
     {
-      double temp=1;
-      vector<int> bi=b[i-1]; // bi is the subscript of the current K
-      int wt_bi=bi[bi.size()-1];
-      vector<int> bi_to_tau_pos;
-	  
-      //because the vector bi has weight w-1, but the vector tau has weight w, every even weight tau gives a bi, 
-     // when convert bi back to tau,just a a digit at the end of bi, if bi has even weight, the first digit of tau=0, if bi has odd weight, the first digit of tau=1.
-      if (wt_bi%2==0){}
-      else {bi_to_tau_pos.push_back(0);}  // if bi has odd weight, the first digit of tau is 1.
-      
-      for (int k=0;k<bi.size()-1;k++)
+      double tempK=1;
+      vector<int> i_binary_pos_plus_1; //so that is the position of corresponding tau for K
+      int wt_i=0;
+      int tempi=i;
+      //get the binary form of i,store the position of 1 in "i_binary_pos"
+      for (int ii=0;ii<=w-2;ii++)
 	{
-	  if (bi[k]==1){bi_to_tau_pos.push_back(k+1);}  //find the entries of tau with 1
+	  int tempi_red=tempi%2;
+	  tempi=tempi/2;
+	  if (tempi_red==1){i_binary_pos_plus_1.push_back(ii+1);wt_i++;}
+	  
 	}
-      
+      //get the tau for K
+      vector<int> tau_for_K_pos=i_binary_pos_plus_1;
+      if (wt_i%2==1) {tau_for_K_pos.push_back(0);}
+
+	  
+	  
+      //because the vector i has weight w-1, but the vector tau has weight w, every even weight tau gives a i, 
+      // when convert i back to tau,just add a digit at the end of i, if i has even weight, the first digit of tau=0, if bi has odd weight, the first digit of tau=1.
+      int temp=1;
       for (int j=0;j<num_B_tau;j++)
 	{
 	  int wt_tau_bi=0;
-	  for (int ii=0;ii<bi_to_tau_pos.size();ii++)
+	  for (int ii=0;ii<tau_for_K_pos.size();ii++)
 	    {
-	      if (Tau[j][bi_to_tau_pos[ii]]==1){wt_tau_bi++;}//Tau[j] is the binary form of j, check the number of i such that Tau[j][i]=tau[i]=1
+	      if (Tau[j][tau_for_K_pos[ii]]==1){wt_tau_bi++;}//Tau[j] is the binary form of j, check the number of i such that Tau[j][i]=tau[i]=1
 	    }
-	      if (wt_tau_bi%2==0){temp=temp*B_tau[j];}
-	      else{temp=temp/B_tau[j];}
+	  if (wt_tau_bi%2==0){temp=temp*B_tau[j];}
+	  else{temp=temp/B_tau[j];}
 	}      
-      if (bi[bi.size()-1]==1){output_K[Ai[change_col]]=1/pow(2,w)*log(temp);change_col++;}  //change the value of corresponding K
-      else {output_K.push_back(1/pow(2,w)*log(temp));}
-    }  
+      if (wt_i==1){output_K[Ai[temp_K_changed]]=1/pow(2,w)*log(temp);temp_K_changed++;}  //change the value of corresponding K
+	else {output_K.push_back(1/pow(2,w)*log(temp));}
+      }
+    
+  
 }
       
 void construct_B_tau(vector<double> &B_tau,int w, vector<double>& input_K, vector<int> Ai,vector<vector<int>>&  Tau){
@@ -162,7 +244,8 @@ void construct_B_tau(vector<double> &B_tau,int w, vector<double>& input_K, vecto
        for (int j=0;j<w;j++)
 	 {
 	   temp=temp+input_K[Ai[j]]*pow(-1,Tau[i][j]);
-	 }     
+	 }
+       temp=cosh(temp);
        B_tau.push_back(temp);
      }	 	 
  }
@@ -290,14 +373,14 @@ void construct_BF(GF2mat& D,vector<int> &Ai, int w,int c, GF2mat& DB, GF2mat& F,
 	      //if wt >1, is the sum of temp_vec2 and a column from DB
 	      for (int iii=1;iii<w;iii++)
 		{
-		  if (temp_vec21(Ai[iii])==1){temp_wt++;temp_one=Ai[iii];}
+		  if (temp_vec21(Ai[iii])==1){temp_wt++;temp_one=iii;}
 		}
-	      if (temp_wt==1){F.set(col_ind,temp_one,1);}
+	      if (temp_wt==1){F.set(col_ind,Ai[temp_one],1);}
 	      else
 		{
 		  for (int k=0;k<col_ind-1;k++)
 		    {
-		      if (temp_vec21==B.get_col(k)){F.set(col_ind,k,1);break;}
+		      if (temp_vec21==B.get_col(k)){F.set(col_ind,k+n,1);break;}
 		      if (k==col_ind-2){cout<<"k==col_ind-2, something went wrong"<<endl;return;}
 		    }
 		}
@@ -310,10 +393,12 @@ void construct_BF(GF2mat& D,vector<int> &Ai, int w,int c, GF2mat& DB, GF2mat& F,
       b.push_back(bi);
     }
   DB=D*B;
-  if (debug==1){
-    cout<<"B is \n"<<B<<endl;
-    cout<<"F is\n"<<F<<endl;
-  }
+
+  
+  //if (debug==1){
+  // cout<<"B is \n"<<B<<endl;
+  // cout<<"F is\n"<<F<<endl;
+  // }
   
 }
 
@@ -351,4 +436,183 @@ GF2mat merge_mat_vert(const GF2mat &up,const GF2mat &bottom, int debug)
       //if (debug==1){cout<<"up:\n"<<up<<"\n  bottom:\n"<<bottom<<"\n result: \n"<<m<<endl;}
       return m;
     }
+}
+
+
+bool new_decoder1(GF2mat& H2,GF2mat &H, GF2mat &G,const nodes checks[],const nodes errors[],const vec &pv,const vec& pv_dec,double& num_iter, int lmax,int& max_fail,int&syn_fail,int debug, vec &LR,int rankH,int options)
+{
+  int v=H.cols();
+  int c=H.rows();
+
+  int wt_real_e=0;
+  GF2mat real_e(v,1);
+  
+  wt_real_e=error_channel(real_e, pv);
+  if (wt_real_e==0)
+    {	  
+      return true;
+    }
+    
+  //if no error, break
+
+  GF2mat zero_rvec(1,v);
+   
+  LR.zeros();
+  //vec LR_avg=LR;
+  GF2mat zero_mat1(c,1);
+  GF2mat zero_mat2(v,1);
+  GF2mat zero_rvec2(v-rankH,1);
+  
+  GF2mat syndrome=H*real_e;
+
+  //is the syndrome a zero vector?
+  if (syndrome==zero_mat1)
+	{
+	  // is e a stablizer?
+	  if (G*real_e==zero_rvec2)
+	    {
+	      return true;
+	    }        
+	  else  
+	    {
+	      syn_fail++;
+	      return false;	     
+	    }  
+	}
+  
+      mat mcv(c,v);   // the messages from check nodes to variable nodes, which are p0/p1
+      mat mvc(c,v);   // the messages from variable nodes to check nodes
+      mcv.zeros();
+      mvc.zeros();
+    
+      initialize_massages( mcv,mvc, H); //initialize to all-1 matrix
+
+      GF2mat output_e(v,1);
+      
+      for (int l=1;l<=lmax;l++)
+	{
+	  //  cout<<l<<endl;
+   	  quan_s_update(checks,errors, mcv,mvc,syndrome,pv_dec, c, v,output_e,LR,1);	
+	    
+	   if (H*output_e==syndrome)
+		{		  
+		  if(G*(output_e+real_e)==zero_rvec2)
+		    {
+		      num_iter= num_iter+l;		  
+		      return true;
+		    }
+		  else
+		    {
+		      // cout<<"\n syndrome is ok, but decoding fails:"<<endl;
+		      syn_fail++;		
+		      return false;      	        
+		    }	    	  
+		}  
+	}
+      /*
+      cout<<"output e is \n"<<endl;
+      err_pos2(output_e);
+      cout<<"real e is \n"<<endl;
+      err_pos2(real_e);      
+      */      
+      max_fail++;
+      return false;
+ }
+
+
+bool new_decoder2(GF2mat& H,GF2mat& G,GF2mat &H_tilde, GF2mat &H_tilde_star,const vector<vector<int>>& A,const nodes checks[],const nodes errors[],const vec &pv,const vec& pv_dec,const int&  num_row_red,double& num_iter, int lmax,int& max_fail,int&syn_fail,int debug, vec &LR,int rankH,int options)
+{
+  int v=H.cols();
+  int c=H.rows();
+  int vt=H_tilde.cols();
+  int ct=H_tilde.rows();
+
+  int wt_real_e=0;
+  GF2mat real_e(v,1);
+  
+  wt_real_e=error_channel(real_e, pv);
+  if (wt_real_e==0)
+    {	  
+      return true;
+    }
+    
+  //if no error, break
+
+  GF2mat zero_rvec(1,v);
+   
+  LR.zeros();
+  //vec LR_avg=LR;
+  GF2mat zero_mat1(c,1);
+  GF2mat zero_mat2(v,1);
+  GF2mat zero_rvec2(v-rankH,1);
+  GF2mat zero_vec_for_syndrome(ct-c,1);
+  
+  GF2mat syndrome=H*real_e;
+
+
+  //is the syndrome a zero vector?
+  if (syndrome==zero_mat1)
+	{
+	  // is e a stablizer?
+	  if (G*real_e==zero_rvec2)
+	    {
+	      return true;
+	    }        
+	  else  
+	    {
+	      syn_fail++;
+	      return false;	     
+	    }  
+	}
+  GF2mat syndrome_tilde(ct,1);
+  syndrome_tilde=merge_mat_vert(syndrome,zero_vec_for_syndrome);
+  
+  mat mcv(ct,vt);   // the messages from check nodes to variable nodes, which are p0/p1
+  mat mvc(ct,vt);   // the messages from variable nodes to check nodes
+  mcv.zeros();
+  mvc.zeros();
+    
+  initialize_massages( mcv,mvc, H_tilde); //initialize to all-1 matrix
+
+  GF2mat output_e(v,1);
+  GF2mat output_e_tilde(vt,1);
+      
+  for (int l=1;l<=lmax;l++)
+    {
+      //  cout<<l<<endl;
+      quan_s_update(checks,errors, mcv,mvc,syndrome_tilde,pv_dec, ct, vt,output_e_tilde,LR,1);	
+	    
+      if (H_tilde*output_e_tilde==syndrome_tilde)
+	{
+	  //inverse_trans(output_e,output_e_tilde,A);
+	  cout<<"ok"<<endl;
+	  return true;
+	  if(H*(output_e+real_e)==zero_rvec2)
+	    {
+	      num_iter= num_iter+l;		  
+	      return true;
+	    }
+	  else
+	    {
+	      // cout<<"\n syndrome is ok, but decoding fails:"<<endl;
+	      syn_fail++;		
+	      return false;      	        
+	    }	    	  
+	}  
+    }
+	            
+      max_fail++;
+      return false;
+ }
+
+
+int Weight(const bvec &cw)
+{
+  int n=cw.size();
+  int wt=0;
+  for (int i=0;i<n;i++)
+    {
+      if(cw(i)==1){wt++;}
+    }
+  return wt;
 }
