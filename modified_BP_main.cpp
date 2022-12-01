@@ -124,9 +124,10 @@ int main(int argc, char **argv){
 
   double num_iter=0.0; //for calculate average iterations for e_x
   int num_of_suc_dec=0;// number of successfully decoded results
-  // int num_of_x_suc_dec=0;//number of Hx successfully decoded results
+ 
   int max_fail=0;//number of fails that reach maximum iterations
   int syn_fail=0;//number of fails that get the right syndrome but fails
+  bool Hx_suc=false;
 
   int n1,n2,n,k,r1,r2,r;
   
@@ -142,6 +143,7 @@ int main(int argc, char **argv){
   r=r1+r2;
   int rankx=GF2mat_rank(Hx);
   int rankz=GF2mat_rank(Hz);
+  int rankH=rankx;
   
   // if (num_row_red>=rankz){cout<<"error:   num_of_row_reduction>=rankz";return 1;}
   
@@ -150,11 +152,13 @@ int main(int argc, char **argv){
   
   if((Hx*Hz.transpose())==zero_mat1) {}
   else{cout<<"Hx*Hz^T!=0, the two matrices donot match"<<endl;return 1;}
-  if (debug=1){cout<<"input H(Hx) is \n"<<Hx<<"\n input D(Hz) is\n"<<Hz<<endl;}
+  if (debug==1){cout<<"input H(Hx) is \n"<<Hx<<"\n input D(Hz) is\n"<<Hz<<endl;}
+  GF2mat G=get_gen(Hx);
+  //cout<<Gx*(Hx.transpose())<<endl;
   
-  /*
   GF2mat H=Hx;
   GF2mat D=Hz;
+  
   GF2mat H_tilde,D_tilde;
   vector<vector<int>> A;
   vector<double> K,K_tilde;
@@ -164,7 +168,68 @@ int main(int argc, char **argv){
   for (int i=0;i<n;i++) {K.push_back(K_initial);}
 
   Mat_Trans(H,D,K,  K_tilde, H_tilde, D_tilde, A, num_row_red,debug);
-  */
+  
+  GF2mat H_tilde_star=get_gen(H_tilde);  
 
+  nodes  checks[H_tilde.rows()];//checks for Hx and Z errors
+  nodes errors[H_tilde.cols()];
+
+
+  int E1=0; //number of edges in Hx factor graph, but this parameter is not used in this prog
+
+  //find the neighbourhoods of all nodes:
+
+
+  initialize_checks (H_tilde, checks, E1);
+  initialize_errors(H_tilde, errors);
+
+  vec pv(n);
+  vec LR(K_tilde.size());
+  vec pv_dec(K_tilde.size());
+  // int  num_of_suc_dec=0;
+  for (int i=0;i<n;i++){pv(i)=p;}
+  for (int j=0;j<K_tilde.size();j++){pv_dec(j)=1/(1+exp(2*K_tilde[j]));}    
+
+  
+  while (num_of_failed_cws<max_failed_cws&&num_of_cws<max_num_of_cws)
+    {
+      num_of_cws++;
+      Hx_suc=new_decoder2(H, G,H_tilde, H_tilde_star, A, checks,errors,pv,pv_dec,  num_row_red, num_iter,  lmax, max_fail,syn_fail,debug, LR, rankH, options);
+ 
+      // cout<<num_iter<<endl;
+      if (Hx_suc==true)
+	{       	 
+	  num_of_suc_dec++;
+	}
+      else
+	{
+	  num_of_failed_cws++;
+	}  
+    }
+   
+
+
+
+  cout<<"p="<<p<<", there are total "<< num_of_suc_dec<<" successful decoding out of "<< num_of_cws<<" cws for a [["<<n<<", "<<k<<"]] code (decode x errors only)"<<endl;
+   cout<<"average iterations:"<<endl;
+ 
+   cout<<num_iter/num_of_suc_dec<<"\n\n"<<endl;
+   cout<<"syn_fail="<<syn_fail<<endl;
+   cout<<"max_fail="<<max_fail<<endl;
+  
+   // cout<<"num of zero errors is about "<<pow(p,n)*num_of_cws<<endl;
+      
+   ofstream myfile;
+   myfile.open (data_file,ios::app);
+ 
+   myfile << n<<" "<<d<<"  "<< 1.0*(num_of_cws-num_of_suc_dec)/num_of_cws<<"  "<<p<<" "<<1.0*num_iter/num_of_suc_dec<<"  "<<num_of_suc_dec<<" "<<num_of_cws<<"  "<<syn_fail<<" "<<max_fail<<" "<<1.0*syn_fail/num_of_cws<<" "<<1.0*max_fail/num_of_cws<<endl;
+  
+
+   myfile.close();
+   std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+   std::chrono::duration<double, std::milli> time_span = (end - start)/1000;
+   std::cout << "\n Run-time " << time_span.count() << " seconds.\n";
+
+  
   return 0;
 }
