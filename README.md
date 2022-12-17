@@ -119,7 +119,15 @@ Which is the matrix:
 M1, M2, M3... are some matrices from MayKay's website.  
 Toric code example: toric_Hx_n10_cyc11 is Hx for d=10 toric code.  
 
-## MBP
+## Modified BP
 ```bash
-./MBP  Hx_file Hz_file p  max_failed_cws/max_num_of_cws lmax data_file options channel num_of_row_reduction debug"
+make MBP
+./MBP  Hx_file Hz_file p  max_failed_cws/max_num_of_cws lmax data_file options channel num_of_row_reduction debug
+```
+
+## Estimate Maximum-likelyhood(ML) decoding success rate
+```bash
+make MLSR
+./MLSR  Hx_file Hz_file p  num_large_wt_errors debug
+./MLSR ../S_BP/checkerboard_Hx_d3  ../S_BP/checkerboard_Hz_d3 0.8 300 0
 ```
