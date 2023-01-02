@@ -59,3 +59,4 @@ int Weight(const bvec &cw);
 double energy (bool empty_G,const GF2mat& G, const GF2mat& e, const vector<double> &K);
 double ML_suc_rate (vec p,const GF2mat& D,const GF2mat& H, const GF2mat& H_tilde_star, vector<double>&K,int d,int num_large_wt_error);
 
+
