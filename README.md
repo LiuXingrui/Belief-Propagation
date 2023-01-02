@@ -128,6 +128,6 @@ make MBP
 ## Estimate Maximum-likelyhood(ML) decoding success rate
 ```bash
 make MLSR
-./MLSR  Hx_file Hz_file p  num_large_wt_errors debug
-./MLSR ../S_BP/checkerboard_Hx_d3  ../S_BP/checkerboard_Hz_d3 0.8 300 0
+./MLSR  Hx_file Hz_file p  num_large_wt_errors debug data_file
+./MLSR ../S_BP/checkerboard_Hx_d3  ../S_BP/checkerboard_Hz_d3 0.8 300 0 data/ML_data.data
 ```
