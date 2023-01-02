@@ -33,7 +33,8 @@ void Mat_Trans(const GF2mat& H, const GF2mat& D, vector<double> &K, vector<doubl
   GF2mat output_H, output_D;
   vector<double> input_K=K;
   vector<double> output_K=K;
-  //cout<<"start"<<endl;
+  // cout<<"start"<<endl;
+  
   int real_num_of_row_reduction;
   if (num_of_row_reduction>=0){  real_num_of_row_reduction=num_of_row_reduction;}
   else{real_num_of_row_reduction=-num_of_row_reduction;} //negative num_of_row_reduction for combine e at the bottom of D
@@ -46,15 +47,16 @@ void Mat_Trans(const GF2mat& H, const GF2mat& D, vector<double> &K, vector<doubl
 	  cout<<"before row reduction H is"<<H<<" \n D: \n"<<D<<endl;
 	  
 	  cout<<"K_tilde is \n:"<<endl;
-	  for(auto ii:output_K)
+	  for(auto ii:input_K)
 	    {
-	      cout<<output_K[ii]<<" ";
+	      cout<<ii<<" ";
 	    }
 	  cout<<endl;
 	}
       
   for (int i=0;i<real_num_of_row_reduction;i++)
     {
+      // cout<<i<<"th row reduction"<<endl;
       int min_wt=H.cols();
       int this_row=0;
 
@@ -68,6 +70,7 @@ void Mat_Trans(const GF2mat& H, const GF2mat& D, vector<double> &K, vector<doubl
 	      if (temp_wt<min_wt){min_wt=temp_wt;this_row=j;}
 	    }
 	}
+      
       else
 	{
 	  for (int j=0;j<input_D.rows()-1;j++) //donot touch the last row- the error vector
@@ -78,13 +81,18 @@ void Mat_Trans(const GF2mat& H, const GF2mat& D, vector<double> &K, vector<doubl
 	      if (temp_wt<min_wt){min_wt=temp_wt;this_row=j;}
 	    }
 	}
+      
+   
       if (debug==1)
 	{
 	  cout<<i+1<<"th row reduction, delete "<<this_row<<"th row:"<<endl;
 	}
       //perform row reduction for the column with minimum weight of D
+      // cout<<121<<endl;
+      if (min_wt>15){cout<<"for "<<i<<"th row reduction (first index is 0) weight of minimum-weight row of D is "<<min_wt<<", so stop here"<<endl;break;}
       row_reduction(this_row,input_H, input_D, output_H,output_D,input_K,output_K,A,debug);//I havn't delete the rows and columns
- 
+      
+      //  cout<<22<<endl;
       //  check if the prog is right:
       if (debug==1)
 	{
@@ -190,22 +198,27 @@ void row_reduction(const int which_row, GF2mat& H, GF2mat& D, GF2mat& H2, GF2mat
       if (D(which_row,j)==1){Ai.push_back(j);w++;}  // find where are the 1s
     }
 
+  //cout<<1<<"wt is "<<w<<endl;
+  // if (w==72){cout<<D<<endl;}
   Ai.push_back(w);
   A.push_back(Ai);
   if (w>1)
     {
       Add_cols(H,D,Ai,w,debug);// now H -> H*A^T^(-1), D-> DA
-      
+      //  cout<<2<<endl;
       if (w>2)
 	{
 	  // cout<<"before add cols and rows"<<endl;
 	  Add_cols_and_rows(H,D,Ai,w,H2,D2,debug,b);  // now H-> \frac{H*A^T^(-1)}{F}, D-> DA | DAB
+	  //  cout<<3<<endl;
 	  // cout<<"after add cols and rows"<<endl;
 	}
       else{H2=H;D2=D;}
       K_trans(input_K,output_K,Ai,w,b);
+      //  cout<<4<<endl;
       // cout<<"after K_trans"<<endl;
     }
+  else{H2=H;D2=D;}
 }
 
   // b stores the binary form of 1,2...2^(w-1)-1
@@ -334,7 +347,7 @@ void Add_cols(GF2mat& H,GF2mat& D,vector<int>& Ai,const int w,int debug){
 void Add_cols_and_rows(GF2mat& H,GF2mat& D,vector<int>& Ai,int w,GF2mat& H2,GF2mat& D2,int debug,vector<vector<int>>& b){
 
   int num_add_cols=pow(2,w-1)-w; //number of added cols, also is the num of cols of B,cols of B are binray form of 0,1,...2^(w-1)-1,
-                                  //but delete w-1 weight=1 cols, and 1 weight=0 col, so num_add_col=2^(w-1)-(w-1)-1=2^(w-1)-w
+                             //but delete w-1 weight=1 cols, and 1 weight=0 col, so num_add_col=2^(w-1)-(w-1)-1=2^(w-1)-w
   int c=D.cols();
   int r=D.rows();
   int n=H.cols();
@@ -790,8 +803,10 @@ double ML_suc_rate (vec p,const GF2mat& D,const GF2mat& H, const GF2mat& H_tilde
 	  //	  cout<<2<<endl;
 	  if (e_tilde.cols()==H_tilde_star.cols() && e_tilde.rows()==H_tilde_star.rows())
 	    {
-	      double temp2=exp(energy (true,empty_tempmat, e_tilde, K_tilde))/(exp(energy (true,empty_tempmat, e_tilde, K_tilde))+exp(energy (true,empty_tempmat, e_tilde+H_tilde_star, K_tilde)));
-	      if (temp2>0.5){suc_rate++;}
+	      double exp_energy_ratio=exp(energy (true,empty_tempmat, e_tilde, K_tilde))/(exp(energy (true,empty_tempmat, e_tilde, K_tilde))+exp(energy (true,empty_tempmat, e_tilde+H_tilde_star, K_tilde)));
+	      //   double exp_e_plus_c_energy=0;
+	      
+	      if (exp_energy_ratio>0.5){suc_rate++;}
 	    }
 	  else {cout<<"error: e_tilde.cols()="<<e_tilde.cols()<<" \n H_tilde_star.cols()="<<H_tilde_star.cols()<<"\n  e_tilde.rows()="<<e_tilde.rows()<<"\n H_tilde_star.rows()="<<H_tilde_star.rows()<<endl;}
 	}
