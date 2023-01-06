@@ -735,7 +735,8 @@ void inverse_trans(GF2mat& output_e,const GF2mat& output_e_tilde,const vector<ve
 // something wrong here, so empty_G should always be true
 double energy (bool empty_G,const GF2mat& G, const GF2mat& eT, const vector<double> &K)
 {
- 
+
+  if (eT.rows()!=1){cout<<"eT.rows!=1, some thing wrong with the energy function"<<endl;return 0;}
   if (empty_G==true)
     {
       // cout<<"e1"<<endl;
@@ -831,10 +832,14 @@ double ML_suc_rate (vec p,const GF2mat& D,const GF2mat& H, const GF2mat& H_tilde
   
 }
 
-void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_star, const GF2mat D_star,const GF2mat H_tilde, const GF2mat H_tilde_star,vector<double>&K,int max_num_cws,double& after_trans_suc_rate,double&suc_rate,double &after_trans_theoric_suc_rate)
+void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_star, const GF2mat D_star,const GF2mat H_tilde, const GF2mat H_tilde_star,vector<double>&K,int max_num_cws,double& after_trans_suc_rate,double&suc_rate,double &after_trans_theoric_suc_rate,double& min_wt_suc_rate,int debug)
 {
+  // get logical operator:
+  GF2mat L;
   // cout<<"ML_suc_rate start"<<endl;
-  
+  get_logical(H, D,H_star, L);
+
+  int min_wt_suc_count=0;
   int after_trans_suc_count=0;
   int suc_count=0;
   int after_trans_theoric_suc_count=0;
@@ -860,8 +865,9 @@ void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_sta
       int wt_real_e=0;
       GF2mat real_e(v,1); 
       wt_real_e=error_channel(real_e, p);
-      
-      //  cout<<"real_e is \n"<<real_e<<endl;
+
+      if (debug==1){ cout<<"real_e is \n"<<real_e<<endl;}
+ 
 
       // cout<<0<<endl;
       
@@ -871,8 +877,14 @@ void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_sta
       vector<vector<int>> A;
       GF2mat H_tilde,e_tilde,empty_tempmat;
 	    
-      // cout<<3<<endl;	  
+      // cout<<3<<endl;
+      //here e_tilde is a row vector so it is in fact the transposed one
       Mat_Trans(H,De,K,  K_tilde, H_tilde, e_tilde, A,-D.rows());
+           if (debug==1)
+	     {
+	       cout<<"after trans real_e is \n"<<e_tilde<<endl;
+	       cout<<"e_tilde+logical_operattor is\n"<<e_tilde+H_tilde_star<<endl;
+	     }
 
       //  cout<<4<<endl;
 
@@ -882,7 +894,14 @@ void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_sta
 	  double exp_energy_ratio=exp(energy (true,empty_tempmat, e_tilde, K_tilde))/(exp(energy (true,empty_tempmat, e_tilde, K_tilde))+exp(energy (true,empty_tempmat, e_tilde+H_tilde_star, K_tilde)));
 	  //   double exp_e_plus_c_energy=0;
 	      
-	  if (exp_energy_ratio>0.5){after_trans_theoric_suc_count++;}
+	  if (exp_energy_ratio>0.5)
+	    {
+	      after_trans_theoric_suc_count++;
+	           if (debug==1)
+		     {
+		       cout<<"in theory: suc"<<endl;
+		     }
+	    }
 	}
 	  else {cout<<"error: e_tilde.cols()="<<e_tilde.cols()<<" \n H_tilde_star.cols()="<<H_tilde_star.cols()<<"\n  e_tilde.rows()="<<e_tilde.rows()<<"\n H_tilde_star.rows()="<<H_tilde_star.rows()<<endl;}
 
@@ -894,20 +913,53 @@ void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_sta
       //  cout<<5<<endl;
       
       algebraic_decoder(H,syndrome,algebraic_e);
+     
       
       // cout<<6<<endl;
-      //  cout<<"H is \n"<<H<<" \n H_star is \n"<<H_star<<"\n algebraic_e is\n"<<algebraic_e<<endl;
-      ML_decoder(algebraic_e, D,H_star,K,ML_output_e);
-      //   cout<<"ML decoder: output_e is\n"<<ML_output_e<<endl;
-      //  cout<<7<<endl;
+      //  cout<<"H is \n"<<H<<" \n H_star is \n"<<H_star
+      if (debug==1)  {cout<<"ML decoder:\n algebraic_e is\n"<<algebraic_e<<endl; }
+      // cout<<"ML decoder:\n algebraic_e is\n"<<algebraic_e<<endl;
+ 
+      // cout<<"algebraic_e +L is\n"<<algebraic_e+L.transpose()<<endl;
+
+      int alge_e_wt=s_weight(algebraic_e);
+      int alge_e_L_wt=s_weight(algebraic_e+L.transpose());
+      GF2mat min_wt_e;
+      
+      if (alge_e_wt<=alge_e_L_wt) {min_wt_e=algebraic_e;}
+      
+      else {min_wt_e=algebraic_e+L.transpose();}
+      
       GF2mat tempzeromat(D_star.rows(),1);
+      if (H*min_wt_e==syndrome)
+	{
+	  if (D_star*(min_wt_e+real_e)==tempzeromat)
+	    {
+	      min_wt_suc_count++;
+	    }
+	}
+      
+	  ML_decoder(algebraic_e, D,L,K,ML_output_e);
+      
+           if (debug==1)
+	     {
+	       cout<<"ML decoder: output_e is\n"<<ML_output_e<<endl;
+	     }
+
+      //  cout<<7<<endl;
+    
       if (H*ML_output_e==syndrome)
 	{
 	  //  cout<<"D_star is\n"<<D_star<<endl;
 	  // cout<<"sum is \n"<<ML_output_e+real_e<<endl;
-	  //cout<<"D_star*(ML_output_e+real_e)=\n"<<D_star*(ML_output_e+real_e)<<endl;
+	  //	  cout<<"D_star*(ML_output_e+real_e)=\n"<<D_star*(ML_output_e+real_e)<<endl;
+	  //	  cout<<"D_star*(ML_output_e+real_e+Logical)=\n"<<D_star*(ML_output_e+real_e+L.transpose())<<endl;
 	  //cout<<"zeromat is \n"<<one_x_n_zeromat<<endl;
-	  if (D_star*(ML_output_e+real_e)==tempzeromat){suc_count++;}
+	  if (D_star*(ML_output_e+real_e)==tempzeromat)
+	    {
+	      suc_count++;
+	      if (debug==1){ cout<<"ML suc"<<endl;}
+	    }
 	}
       else {cout<<"sth wrong with the ML decoder, H*output_e!=syndrome"<<endl;}
 	
@@ -920,19 +972,33 @@ void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_sta
       
       GF2mat algebraic_e_tilde(H_tilde.cols(),1);
       GF2mat	ML_output_e_tilde(H_tilde.cols(),1);
+      GF2mat wrong_e(H_tilde.cols(),1);
       //  cout<<8<<endl;
       algebraic_decoder(H_tilde,syndrome_tilde,algebraic_e_tilde);
+           if (debug==1)
+	     {
+	       cout<<"after trans algebraic_e: \n"<<algebraic_e_tilde<<endl;
+	       cout<<"after trans algebraic_e+logical operator: \n"<<algebraic_e_tilde+H_tilde_star.transpose()<<endl;
+	     }
+  
+      
       //  cout<<9<<endl;
-      double exp_energy_ratio_trans=exp(energy (true,empty_tempmat, algebraic_e_tilde, K_tilde))/(exp(energy (true,empty_tempmat, algebraic_e_tilde, K_tilde))+exp(energy (true,empty_tempmat, algebraic_e_tilde+H_tilde_star.transpose(), K_tilde)));
+      double exp_energy_ratio_trans=exp(energy (true,empty_tempmat, algebraic_e_tilde.transpose(), K_tilde))/(exp(energy (true,empty_tempmat, algebraic_e_tilde.transpose(), K_tilde))+exp(energy (true,empty_tempmat, algebraic_e_tilde.transpose()+H_tilde_star, K_tilde)));
       //   double exp_e_plus_c_energy=0;
       //  cout<<10<<endl;
-      if (exp_energy_ratio_trans>0.5){ML_output_e_tilde=algebraic_e_tilde;} else{ML_output_e_tilde=algebraic_e_tilde+H_tilde_star.transpose();}
+      if (exp_energy_ratio_trans>0.5){ML_output_e_tilde=algebraic_e_tilde;wrong_e=algebraic_e_tilde+H_tilde_star.transpose();} else{ML_output_e_tilde=algebraic_e_tilde+H_tilde_star.transpose();wrong_e=algebraic_e_tilde;}
       //x cout<<"after trans ML_output_e_tilde=\n"<<ML_output_e_tilde<<endl;
       //  cout<<11<<endl;
       GF2mat trans_ML_output_e(H.cols(),1);
-      inverse_trans(trans_ML_output_e,ML_output_e_tilde,A);
-      //   cout<<"after inverse trans :\n"<<trans_ML_output_e<<endl;
+      GF2mat trans_ML_wrong_output_e(H.cols(),1);
       
+      inverse_trans(trans_ML_output_e,ML_output_e_tilde,A);
+      inverse_trans(trans_ML_wrong_output_e,wrong_e,A);
+           if (debug==1)
+	     {
+	       cout<<"after inverse trans :\n"<<trans_ML_output_e<<endl;
+	       cout<<"after inverse trans wrong e:\n"<<trans_ML_wrong_output_e<<endl;
+	     }
       //cout<<12<<endl;
       //  cout<<H<<endl;
       //  cout<<trans_ML_output_e<<endl;
@@ -940,6 +1006,7 @@ void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_sta
 	{
 	  // cout<<13<<endl;
 	  if (D_star*(trans_ML_output_e+real_e)==tempzeromat){after_trans_suc_count++;}
+	  // else  {cout<<"(D_star*(trans_ML_wrong_output_e+real_e)=\n"<<D_star*(trans_ML_wrong_output_e+real_e)<<endl;}
 	  // cout<<14<<endl;
 	}
       else {cout<<"sth wrong with the ML decoder, H*output_e!=syndrome"<<endl;}
@@ -948,34 +1015,87 @@ void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_sta
 
   after_trans_theoric_suc_rate=1.0*after_trans_theoric_suc_count/max_num_cws;
   after_trans_suc_rate=1.0*after_trans_suc_count/max_num_cws;
-  suc_rate=1.0*suc_count/max_num_cws; 
+  suc_rate=1.0*suc_count/max_num_cws;
+  min_wt_suc_rate=1.0*min_wt_suc_count/max_num_cws;
+}
+
+void get_logical(const GF2mat& H, const GF2mat& D,const GF2mat& H_star, GF2mat& L)
+{
+  vector<GF2mat> Lo;
+  GF2mat T;
+  ivec perm;
+  GF2mat U;
+  int prerank=D.T_fact(T,U,perm);
+  int temprank=0;
+  int first_lo=0;
+  GF2mat tempmat2=D;
+
+  for (int i=0;i<H_star.rows();i++)
+    {
+      GF2mat tempmat1=H_star.get_row(i).transpose();
+      tempmat2=merge_mat_vert(tempmat2,tempmat1);
+      temprank=tempmat2.T_fact(T,U,perm);
+      if (temprank==prerank+1){Lo.push_back(tempmat1);prerank=temprank;}
+      else if(temprank!=prerank) {cout<<"sth wrong with the get_locial operator"<<endl;return;}
+    }
+  L=Lo[0];
+
+  for (int j=1;j<Lo.size();j++)
+    {
+      L=merge_mat_vert(L,Lo[j]);
+    }
+  
+      
+
+  
 }
 
 //it is better to use L instead of H_star, but I havenot wrotten the function to calculate L yet.
-void ML_decoder(const GF2mat& input_e, const GF2mat& D,const GF2mat& H_star,vector<double>& K,GF2mat& output_e){
+void ML_decoder(const GF2mat& input_e, const GF2mat& D,const GF2mat& L,vector<double>& K,GF2mat& output_e){
   
   if(D.rows()>10){cout<<" D>rows()>10, it is better not to use ML decoder"<<endl;return;}
   
   double unnormalized_p=0;
-  double max_unnormalized_p=0;
+ 
   
   GF2mat input_e_T=input_e.transpose();
   GF2mat temp_output_e_T=input_e_T;
+  double max_unnormalized_p=exp(energy (true,D, input_e_T, K));
 
-  // cout<<61<<endl;
+  //for input_e:
+  //start with i=1 because alpha=0 is already added
+  for (int i=1;i<pow(2,D.rows()-1);i++)  
+    {
+      int tempi=i;
+      GF2mat alpha(1,D.rows());
+
+      // get an alpha
+      for (int l=0;l<D.rows();l++)
+	{
+	  int tempi_red=tempi%2;
+	  tempi=tempi/2;
+	  alpha.set(0,l,tempi_red);
+	}
+      
+      GF2mat tempmat1= input_e_T+alpha*D;
+
+      max_unnormalized_p=max_unnormalized_p+exp(energy (true,D, tempmat1, K));
+    }
+
   //calculate sum of p(e+alpha*D) over alpha for all possible e
   //go over possible e
-  for (int j=0;j<H_star.rows();j++)
+  for (int j=0;j<L.rows();j++)
     {
       //  cout<<"j="<<j<<endl;
       //  cout<<"rows="<<H_star.rows()<<endl;
-      GF2mat tempmat=H_star.get_row(j);
+      GF2mat tempmat=L.get_row(j);
       tempmat=tempmat.transpose();
 
       GF2mat temp_e_T=input_e_T+tempmat;
+      unnormalized_p=exp(energy (true,D, temp_e_T, K));
    
       //go over alpha
-      for (int i=0;i<pow(2,D.rows()-1);i++)  
+      for (int i=1;i<pow(2,D.rows()-1);i++)  
 	{
 	  //  cout<<"i="<<i<<endl;
 	  int tempi=i;
@@ -995,7 +1115,7 @@ void ML_decoder(const GF2mat& input_e, const GF2mat& D,const GF2mat& H_star,vect
 	  //  cout<<alpha<<endl;
 	  GF2mat tempmat1= temp_e_T+alpha*D;
 	  //	  cout<<64<<endl;
-	  unnormalized_p=unnormalized_p+energy (true,D, tempmat1, K);
+	  unnormalized_p=unnormalized_p+exp(energy (true,D, tempmat1, K));
 	  //	  cout<<65<<endl;
 	}
       if (unnormalized_p>max_unnormalized_p){max_unnormalized_p=unnormalized_p;temp_output_e_T=temp_e_T;}
