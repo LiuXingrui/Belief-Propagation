@@ -56,7 +56,11 @@ void inverse_trans(GF2mat& output_e,const GF2mat& output_e_tilde,const vector<ve
 
 int Weight(const bvec &cw);
 
-double energy (bool empty_G,const GF2mat& G, const GF2mat& e, const vector<double> &K);
+double energy (bool empty_G,const GF2mat& G, const GF2mat& eT, const vector<double> &K);
 double ML_suc_rate (vec p,const GF2mat& D,const GF2mat& H, const GF2mat& H_tilde_star, vector<double>&K,int d,int num_large_wt_error);
 
+void ML_decoder_verify(vec p,const GF2mat& H, const GF2mat D,const GF2mat& H_star, const GF2mat D_star,const GF2mat H_tilde, const GF2mat H_tilde_star,vector<double>&K,int max_num_cws,double& after_trans_suc_rate,double&suc_rate,double &after_trans_theoric_suc_rate);
 
+void ML_decoder(const GF2mat& input_e, const GF2mat& D,const GF2mat& H_star,vector<double>& K,GF2mat& output_e);
+
+void algebraic_decoder(const GF2mat& H,const GF2mat& syndrome,GF2mat &output_e);
