@@ -134,10 +134,10 @@ int main(int argc, char **argv){
   vec pv(n);
   for (int i=0;i<n;i++){pv(i)=p;}
 
-  double after_trans_suc_rate,suc_rate,after_trans_theoric_suc_rate;
+  double after_trans_suc_rate,suc_rate,after_trans_theoric_suc_rate,min_wt_rate;
   //cout<<1<<endl;
   
-  ML_decoder_verify(pv,H, D, H_star,  D_star,H_tilde,H_tilde_star,K,num_cws,after_trans_suc_rate,suc_rate,after_trans_theoric_suc_rate);
+  ML_decoder_verify(pv,H, D, H_star,  D_star,H_tilde,H_tilde_star,K,num_cws,after_trans_suc_rate,suc_rate,after_trans_theoric_suc_rate,min_wt_rate,debug);
 
   //  cout<<2<<endl;
   // double suc_rate= ML_suc_rate (pv,D,H,  H_tilde_star,K,d, num_large_wt_error);
@@ -145,12 +145,12 @@ int main(int argc, char **argv){
 
   //  cout<<4<<endl;
 
-  cout<<"for [n="<<n<<", k=1, d="<<d<<"] surface code, \n raw bit suc rate (1-p)="<<1-p<<"\n  ML suc rate="<<suc_rate<<" \n after_trans_ML_suc_rate="<<after_trans_suc_rate<<"\n after_trans_theoric_suc_rate ="<<after_trans_theoric_suc_rate<<" \n using "<<num_cws<<" codewords"<<endl;
+  cout<<"for [n="<<n<<", k=1, d="<<d<<"] surface code, \n raw bit suc rate (1-p)="<<1-p<<"\n  ML suc rate="<<suc_rate<<" \n after_trans_ML_suc_rate="<<after_trans_suc_rate<<"\n after_trans_theoric_suc_rate ="<<after_trans_theoric_suc_rate<<" \n min_wt_suc_rate="<<min_wt_rate<<" \n using "<<num_cws<<" codewords"<<endl;
 
     ofstream myfile;
     myfile.open (data_file,ios::app);
     //  myfile<<"# 1-p   ML_suc_rate  after_trans_ML_suc_rate   after_trans_theoric_suc_rate"<<endl;
-    myfile<<p<<"  "<<suc_rate<<"     "<<after_trans_suc_rate<<"      "<<after_trans_theoric_suc_rate<<endl;
+    myfile<<p<<"  "<<suc_rate<<"     "<<after_trans_suc_rate<<"      "<<after_trans_theoric_suc_rate<<"   "<<min_wt_rate<<endl;
 
   
 
